@@ -1,0 +1,23 @@
+{
+  "name": "Where Is Their Train",
+  "short_name": "Their Train",
+  "description": "Track a traveler's train, get reminders before they arrive, and know when to leave to pick them up.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101014",
+  "theme_color": "#101014",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add a train to watch",
+      "short_name": "New watch",
+      "url": "./index.html#add",
+      "description": "Start tracking someone's train"
+    }
+  ]
+}
