@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Where Is Their Train</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<meta name="theme-color" content="#101014">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+  :root {
+    --bg: #101014;
+    --panel: #1a1a22;
+    --panel-2: #22222c;
+    --border: #2c2c38;
+    --text: #f2f2f5;
+    --muted: #9a9aab;
+    --accent: #7dd3fc;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  header {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    background: linear-gradient(180deg, var(--bg) 80%, transparent);
+  }
+  header h1 {
+    font-size: 19px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  header .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .icon-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 17px;
+  }
+  main { padding: 0 20px 100px; max-width: 560px; margin: 0 auto; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .watch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .watch-row .who { font-weight: 700; font-size: 15px; }
+  .watch-row .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .badge {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.on-time { background: rgba(74,222,128,0.15); color: var(--good); }
+  .badge.late { background: rgba(251,191,36,0.15); color: var(--warn); }
+  .badge.very-late { background: rgba(248,113,113,0.15); color: var(--bad); }
+  .badge.arrived { background: rgba(154,154,171,0.15); color: var(--muted); }
+
+  .fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    background: var(--accent);
+    color: #06202c;
+    border: none;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    font-size: 26px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  label { display: block; font-size: 12.5px; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+  input, select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 11px 12px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-family: inherit;
+  }
+  input:focus, select:focus { outline: 1px solid var(--accent); }
+  .hint { font-size: 12px; color: var(--accent); margin-top: 6px; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 > * { flex: 1; }
+
+  button.primary {
+    width: 100%;
+    background: var(--accent);
+    color: #06202c;
+    border: none;
+    padding: 13px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+  button.secondary {
+    width: 100%;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  button.danger { color: var(--bad); }
+  button.link {
+    background: none; border: none; color: var(--muted);
+    font-size: 13px; cursor: pointer; padding: 8px 0; text-decoration: underline;
+  }
+
+  .back-btn {
+    background: none; border: none; color: var(--text);
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; padding: 4px 0 12px;
+  }
+
+  .suggest-list {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .suggest-item {
+    padding: 10px 12px;
+    font-size: 13.5px;
+    cursor: pointer;
+    border-top: 1px solid var(--border);
+  }
+  .suggest-item:first-child { border-top: none; }
+  .suggest-item:hover { background: var(--panel); }
+  .suggest-item .code { color: var(--muted); font-size: 11.5px; margin-left: 6px; }
+
+  .train-option {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+  .train-option:hover { border-color: var(--accent); }
+  .train-option .tname { font-weight: 700; font-size: 14px; }
+  .train-option .tmeta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .train-option .tdelay { font-size: 12px; font-weight: 700; margin-top: 6px; }
+
+  .big-eta {
+    text-align: center;
+    padding: 10px 0 4px;
+  }
+  .big-eta .time { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }
+  .big-eta .label { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .stat { background: var(--panel-2); border-radius: 12px; padding: 12px; }
+  .stat .v { font-size: 17px; font-weight: 800; }
+  .stat .k { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  .leave-banner {
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .leave-banner.future { background: rgba(125,211,252,0.12); color: var(--accent); }
+  .leave-banner.now { background: rgba(248,113,113,0.16); color: var(--bad); }
+  .leave-banner .sub { font-weight: 500; color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  .reminder-list { margin-top: 16px; }
+  .reminder-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-top: 1px solid var(--border);
+    font-size: 13.5px;
+  }
+  .reminder-item:first-child { border-top: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+  .dot.fired { background: var(--good); }
+  .reminder-item .t { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+  .uber-btn {
+    display: block; width: 100%; text-align: center;
+    background: #111; color: #fff; border: 1px solid #333;
+    padding: 13px; border-radius: 12px; font-weight: 800; font-size: 14.5px;
+    text-decoration: none; margin-top: 16px;
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--panel-2); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 10px; font-size: 13px;
+    z-index: 20; opacity: 0; transition: opacity 0.25s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  :root:not([data-theme="dark"]) {}
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f5f8; --panel: #ffffff; --panel-2: #f0f0f4; --border: #e2e2ea;
+      --text: #16161c; --muted: #6b6b7a;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Where Is Their Train?</h1>
+    <div class="sub" id="headerSub">Track someone, get reminded, grab them a ride</div>
+  </div>
+  <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+</header>
+
+<main id="main"></main>
+
+<button class="fab" id="fabAdd" aria-label="Add a watch" hidden>+</button>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+const STORAGE_KEY = 'witt_state_v2';
+const $main = document.getElementById('main');
+const $fab = document.getElementById('fabAdd');
+const $toast = document.getElementById('toast');
+const $headerSub = document.getElementById('headerSub');
+
+function defaultState() {
+  return {
+    settings: {
+      residenceAddress: '',
+      driveTimeMinutes: 15,
+      bufferMinutes: 10,
+      provider: 'demo', // 'demo' | 'live'
+      apiKey: '',
+      demoSpeedMultiplier: 20,
+      livePollSeconds: 180,
+    },
+    trainHistory: {}, // trainNumber -> { name, runs: [{date, delayMinutes}] }
+    watches: [],
+    view: { name: 'home' },
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return { ...defaultState(), ...parsed, settings: { ...defaultState().settings, ...parsed.settings } };
+  } catch {
+    return defaultState();
+  }
+}
+
+let state = loadState();
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function showToast(msg) {
+  $toast.textContent = msg;
+  $toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => $toast.classList.remove('show'), 2400);
+}
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+// ---------- History-aware delay prediction ----------
+function avgHistoryDelay(trainNumber) {
+  const h = state.trainHistory[trainNumber];
+  if (!h || !h.runs.length) return null;
+  const sum = h.runs.reduce((a, r) => a + r.delayMinutes, 0);
+  return Math.round(sum / h.runs.length);
+}
+
+// ---------- Demo (simulated) live provider ----------
+// Deterministic pseudo-random per watch so numbers don't jump around on
+// every render, but still drift realistically over (accelerated) time.
+function seedFor(watch) {
+  let h = 0;
+  for (const ch of watch.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % 1000;
+}
+
+function demoLive(watch) {
+  const speed = state.settings.demoSpeedMultiplier || 1;
+  const elapsedRealMs = Date.now() - new Date(watch.createdAt).getTime();
+  const elapsedSimMin = (elapsedRealMs / 60000) * speed;
+  const seed = seedFor(watch);
+  const baseline = watch.baselineDelay ?? 0;
+  const delayMinutes = Math.max(0, Math.round(baseline + 9 * Math.sin(elapsedSimMin / 40 + seed)));
+  const distanceRemainingKm = Math.max(0, Math.round(watch.initialDistanceKm - (elapsedSimMin / 60) * 55));
+  const stationName = distanceRemainingKm <= 0
+    ? watch.arrivalStation
+    : `${distanceRemainingKm} km from ${watch.arrivalStation}`;
+  return { stationName, delayMinutes, distanceRemainingKm, updatedAt: new Date().toISOString(), source: 'demo' };
+}
+
+// RailRadar's free tier caps at 1,000 requests/month, so we only hit the
+// network every `livePollSeconds` per watch and reuse the cached result the
+// rest of the time — the UI still ticks every 5s off that cached value.
+async function liveFetch(watch) {
+  if (state.settings.provider !== 'live' || !state.settings.apiKey) return demoLive(watch);
+
+  const pollMs = Math.max(60, state.settings.livePollSeconds || 180) * 1000;
+  const now = Date.now();
+  if (watch._live && watch._liveFetchedAt && (now - watch._liveFetchedAt) < pollMs) {
+    return watch._live;
+  }
+
+  try {
+    const res = await fetch(`/api/live-status?number=${encodeURIComponent(watch.trainNumber)}&key=${encodeURIComponent(state.settings.apiKey)}`);
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error || 'bad status');
+    watch._liveFetchedAt = now;
+    return { ...json, source: 'live' };
+  } catch (e) {
+    watch._liveFetchedAt = now;
+    watch._liveError = String(e.message || e);
+    return { ...(watch._live || demoLive(watch)), source: watch._live ? 'live-stale' : 'demo-fallback' };
+  }
+}
+
+// ---------- Predictions ----------
+function computePrediction(watch) {
+  const live = watch._live || demoLive(watch);
+  const delayMinutes = live.delayMinutes ?? (watch.baselineDelay ?? 0);
+  const scheduled = new Date(watch.scheduledArrival).getTime();
+  const predictedArrival = scheduled + delayMinutes * 60000;
+  const leaveBy = predictedArrival - (state.settings.driveTimeMinutes + state.settings.bufferMinutes) * 60000;
+  return { live, delayMinutes, predictedArrival, leaveBy };
+}
+
+// Delay can be negative (train running ahead of schedule) — never render a
+// bare "+" in front of that without also flipping the sign.
+function fmtDelay(m) {
+  if (m == null) return 'schedule only';
+  if (m === 0) return 'On time';
+  if (m < 0) return `${Math.abs(m)} min early`;
+  return `+${m} min`;
+}
+
+function delayBadge(delayMinutes, status) {
+  if (status === 'arrived') return { cls: 'arrived', label: 'Arrived' };
+  if (delayMinutes <= 5) return { cls: 'on-time', label: fmtDelay(delayMinutes) };
+  if (delayMinutes <= 25) return { cls: 'late', label: fmtDelay(delayMinutes) };
+  return { cls: 'very-late', label: fmtDelay(delayMinutes) };
+}
+
+function fmtTime(ms) {
+  return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+function fmtCountdown(ms) {
+  const diff = ms - Date.now();
+  const sign = diff < 0 ? '-' : '';
+  const abs = Math.abs(diff);
+  const h = Math.floor(abs / 3600000);
+  const m = Math.round((abs % 3600000) / 60000);
+  if (h > 0) return `${sign}${h}h ${m}m`;
+  return `${sign}${m}m`;
+}
+
+// ---------- Notifications ----------
+async function ensureNotifyPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const perm = await Notification.requestPermission();
+  return perm === 'granted';
+}
+
+async function fireNotification(title, body, url) {
+  const ok = await ensureNotifyPermission();
+  if (!ok) { showToast(title + ' — ' + body); return; }
+  const reg = await navigator.serviceWorker?.getRegistration();
+  const options = { body, icon: './icon.svg', badge: './icon.svg', data: { url }, tag: title };
+  if (reg) reg.showNotification(title, options);
+  else new Notification(title, options);
+}
+
+// ---------- Uber deep link ----------
+function uberDeepLink(watch) {
+  const params = new URLSearchParams();
+  params.set('action', 'setPickup');
+  params.set('pickup', 'my_location');
+  if (state.settings.residenceAddress) {
+    params.set('dropoff[formatted_address]', state.settings.residenceAddress);
+    params.set('dropoff[nickname]', 'Home');
+  }
+  return 'https://m.uber.com/ul/?' + params.toString();
+}
+
+// ---------- Reminder scheduler ----------
+async function tick() {
+  let dirty = false;
+  for (const watch of state.watches) {
+    if (watch.status !== 'active') continue;
+    watch._live = await liveFetch(watch);
+    const { predictedArrival } = computePrediction(watch);
+    const now = Date.now();
+
+    if (!watch.remindersFired.oneHour && now >= predictedArrival - 3600000 && now < predictedArrival) {
+      watch.remindersFired.oneHour = true;
+      fireNotification(
+        `${watch.travelerName}'s train — ~1 hour out`,
+        `${watch.trainName || watch.trainNumber} is due at ${fmtTime(predictedArrival)}. Time to start winding down.`,
+        '#watch/' + watch.id
+      );
+      dirty = true;
+    }
+    if (!watch.remindersFired.fifteenMin && now >= predictedArrival - 900000 && now < predictedArrival) {
+      watch.remindersFired.fifteenMin = true;
+      fireNotification(
+        `${watch.travelerName} arrives in 15 min`,
+        `Due ${fmtTime(predictedArrival)} at ${watch.arrivalStation}. Tap to open Uber to your place.`,
+        '#watch/' + watch.id
+      );
+      dirty = true;
+    }
+    if (!watch.remindersFired.arrived && now >= predictedArrival) {
+      watch.remindersFired.arrived = true;
+      fireNotification(
+        `${watch.travelerName}'s train should be in`,
+        `${watch.trainName || watch.trainNumber} was due ${fmtTime(predictedArrival)} at ${watch.arrivalStation}.`,
+        '#watch/' + watch.id
+      );
+      dirty = true;
+    }
+  }
+  if (dirty) save();
+  if (state.view.name === 'home') updateHomeLive();
+  else if (state.view.name === 'watch') updateWatchLive(state.view.id);
+}
+
+// ---------- Actions ----------
+function addWatch(data) {
+  const baselineDelay = avgHistoryDelay(data.trainNumber);
+  const watch = {
+    id: uid(),
+    travelerName: data.travelerName,
+    trainNumber: data.trainNumber,
+    trainName: data.trainName || (state.trainHistory[data.trainNumber]?.name ?? ''),
+    arrivalStation: data.arrivalStation,
+    scheduledArrival: data.scheduledArrival,
+    createdAt: new Date().toISOString(),
+    status: 'active',
+    baselineDelay: baselineDelay ?? 0,
+    initialDistanceKm: 150 + (seedForString(data.trainNumber) % 300),
+    remindersFired: { oneHour: false, fifteenMin: false, arrived: false },
+  };
+  state.watches.unshift(watch);
+  if (data.trainName && !state.trainHistory[data.trainNumber]) {
+    state.trainHistory[data.trainNumber] = { name: data.trainName, runs: [] };
+  }
+  save();
+  ensureNotifyPermission();
+  return watch;
+}
+
+function seedForString(s) {
+  let h = 0;
+  for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h;
+}
+
+function markArrived(watch) {
+  const { predictedArrival } = computePrediction(watch);
+  const actual = Date.now();
+  const scheduled = new Date(watch.scheduledArrival).getTime();
+  const delayMinutes = Math.max(0, Math.round((actual - scheduled) / 60000));
+  watch.status = 'arrived';
+  watch.actualArrival = new Date(actual).toISOString();
+  const hist = state.trainHistory[watch.trainNumber] || { name: watch.trainName, runs: [] };
+  hist.name = watch.trainName || hist.name;
+  hist.runs.unshift({ date: watch.scheduledArrival, delayMinutes });
+  hist.runs = hist.runs.slice(0, 10);
+  state.trainHistory[watch.trainNumber] = hist;
+  save();
+  showToast('Marked arrived — saved to train history');
+}
+
+function deleteWatch(id) {
+  state.watches = state.watches.filter((w) => w.id !== id);
+  save();
+}
+
+// ---------- Rendering ----------
+function render() {
+  const v = state.view;
+  $fab.hidden = v.name !== 'home';
+  if (v.name === 'home') return renderHome();
+  if (v.name === 'add') return renderAdd();
+  if (v.name === 'watch') return renderWatch(v.id);
+  if (v.name === 'settings') return renderSettings();
+}
+
+function renderHome() {
+  $headerSub.textContent = state.watches.length
+    ? `Watching ${state.watches.filter(w => w.status === 'active').length} active trip(s)`
+    : 'Track someone, get reminded, grab them a ride';
+
+  if (!state.watches.length) {
+    $main.innerHTML = `<div class="empty">No trains being watched yet.<br>Tap + to add someone's train and we'll remind you before they roll in.</div>`;
+    return;
+  }
+
+  const rows = state.watches.map((watch) => {
+    const badge = delayBadge(0, watch.status);
+    return `
+      <div class="card watch-row" data-id="${watch.id}">
+        <div>
+          <div class="who">${escapeHtml(watch.travelerName)}</div>
+          <div class="meta">${escapeHtml(watch.trainName || watch.trainNumber)} → ${escapeHtml(watch.arrivalStation)}</div>
+          <div class="meta" id="eta-${watch.id}"></div>
+        </div>
+        <span class="badge ${badge.cls}" id="badge-${watch.id}">${badge.label}</span>
+      </div>`;
+  }).join('');
+
+  $main.innerHTML = rows;
+  $main.querySelectorAll('.watch-row').forEach((el) => {
+    el.addEventListener('click', () => { state.view = { name: 'watch', id: el.dataset.id }; render(); });
+  });
+  updateHomeLive();
+}
+
+// Called on every tick instead of a full renderHome() rebuild, so a live
+// countdown doesn't blow away click handlers / scroll position every 5s.
+function updateHomeLive() {
+  if (state.view.name !== 'home') return;
+  for (const watch of state.watches) {
+    const etaEl = document.getElementById(`eta-${watch.id}`);
+    const badgeEl = document.getElementById(`badge-${watch.id}`);
+    if (!etaEl || !badgeEl) continue;
+    const { delayMinutes, predictedArrival } = computePrediction(watch);
+    const badge = delayBadge(delayMinutes, watch.status);
+    etaEl.textContent = watch.status === 'arrived'
+      ? `Arrived ${fmtTime(new Date(watch.actualArrival).getTime())}`
+      : `ETA ${fmtTime(predictedArrival)} · ${fmtCountdown(predictedArrival)}`;
+    badgeEl.textContent = badge.label;
+    badgeEl.className = `badge ${badge.cls}`;
+  }
+}
+
+function todayDateStr() {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+// Station search results cache for this add-flow session (query -> results),
+// so retyping/backtracking doesn't re-spend RailRadar quota.
+let stationCache = {};
+async function apiStationSearch(q) {
+  const key = state.settings.apiKey;
+  if (!key || q.trim().length < 2) return [];
+  if (stationCache[q]) return stationCache[q];
+  try {
+    const res = await fetch(`/api/station-search?q=${encodeURIComponent(q)}&key=${encodeURIComponent(key)}`);
+    const json = await res.json();
+    if (!res.ok) return [];
+    stationCache[q] = json;
+    return json;
+  } catch {
+    return [];
+  }
+}
+
+function wireStationInput(inputId, listId, onSelect) {
+  const $input = document.getElementById(inputId);
+  const $list = document.getElementById(listId);
+  let debounceTimer;
+  $input.addEventListener('input', () => {
+    onSelect(null);
+    clearTimeout(debounceTimer);
+    const q = $input.value.trim();
+    if (q.length < 2) { $list.hidden = true; $list.innerHTML = ''; return; }
+    debounceTimer = setTimeout(async () => {
+      const results = await apiStationSearch(q);
+      if ($input.value.trim() !== q) return; // input changed while we were waiting
+      if (!results.length) { $list.hidden = true; $list.innerHTML = ''; return; }
+      $list.innerHTML = results.map((s, i) => `
+        <div class="suggest-item" data-i="${i}">${escapeHtml(s.name)}<span class="code">${escapeHtml(s.code)}${s.city ? ' · ' + escapeHtml(s.city) : ''}</span></div>
+      `).join('');
+      $list.hidden = false;
+      $list.querySelectorAll('.suggest-item').forEach((el) => {
+        el.onclick = () => {
+          const sel = results[Number(el.dataset.i)];
+          $input.value = `${sel.name} (${sel.code})`;
+          $list.hidden = true;
+          onSelect(sel);
+        };
+      });
+    }, 350);
+  });
+}
+
+function trainOptionHtml(t, i) {
+  const delay = t.delayMinutes;
+  const delayColor = delay == null ? 'var(--muted)' : delay <= 5 ? 'var(--good)' : delay <= 25 ? 'var(--warn)' : 'var(--bad)';
+  const delayLabel = delay == null ? 'schedule only — no live delay yet' : (delay <= 0 ? 'on time' : `+${delay} min`);
+  const dayTag = t.toDay > t.fromDay ? ` (+${t.toDay - t.fromDay}d)` : '';
+  return `
+    <div class="train-option" data-i="${i}">
+      <div class="tname">${escapeHtml(t.number)} · ${escapeHtml(t.name)}</div>
+      <div class="tmeta">Dep ${t.departure || '—'} → Arr ${t.arrival || '—'}${dayTag}${t.platform ? ' · Platform ' + escapeHtml(t.platform) : ''}</div>
+      <div class="tdelay" style="color:${delayColor}">${delayLabel}</div>
+    </div>`;
+}
+
+function createWatchFromSearch(name, t, destinationName, dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dayOffset = (t.toDay || 1) - (t.fromDay || 1);
+  const arrDate = new Date(y, m - 1, d + dayOffset);
+  const [hh, mm] = (t.arrival || '00:00').split(':').map(Number);
+  arrDate.setHours(hh || 0, mm || 0, 0, 0);
+  return addWatch({
+    travelerName: name, trainNumber: t.number, trainName: t.name,
+    arrivalStation: destinationName, scheduledArrival: arrDate.toISOString(),
+  });
+}
+
+function renderAdd() {
+  $headerSub.textContent = 'New watch';
+  const mode = state.view.mode || (state.settings.apiKey ? 'search' : 'manual');
+  state.view.mode = mode;
+  if (mode === 'search') renderAddSearch();
+  else renderAddManual();
+}
+
+function renderAddSearch() {
+  $main.innerHTML = `
+    <button class="back-btn" id="back">← Back</button>
+    <div class="card">
+      <label>Who's traveling?</label>
+      <input id="f_name" placeholder="e.g. Mom">
+
+      <label>Coming from</label>
+      <input id="f_from" placeholder="Type a station name or code" autocomplete="off">
+      <div class="suggest-list" id="fromSuggest" hidden></div>
+
+      <label>Arriving at</label>
+      <input id="f_to" placeholder="Type a station name or code" autocomplete="off">
+      <div class="suggest-list" id="toSuggest" hidden></div>
+
+      <label>Travel date</label>
+      <input id="f_date" type="date">
+
+      <button class="primary" id="findTrains">Find trains</button>
+      <div id="trainResults"></div>
+
+      <button class="link" id="toManual">Know the train number already? Enter it manually</button>
+    </div>`;
+
+  document.getElementById('back').onclick = () => { state.view = { name: 'home' }; render(); };
+  document.getElementById('toManual').onclick = () => { state.view.mode = 'manual'; render(); };
+  document.getElementById('f_date').value = todayDateStr();
+
+  let fromSel = null, toSel = null;
+  wireStationInput('f_from', 'fromSuggest', (sel) => { fromSel = sel; });
+  wireStationInput('f_to', 'toSuggest', (sel) => { toSel = sel; });
+
+  document.getElementById('findTrains').onclick = async () => {
+    const name = document.getElementById('f_name').value.trim();
+    if (!name) { showToast("Add the traveler's name first"); return; }
+    if (!fromSel || !toSel) { showToast('Pick both stations from the suggestion list'); return; }
+    const date = document.getElementById('f_date').value || todayDateStr();
+    const $results = document.getElementById('trainResults');
+    $results.innerHTML = `<div class="hint">Searching…</div>`;
+    try {
+      const res = await fetch(`/api/trains-between?from=${encodeURIComponent(fromSel.code)}&to=${encodeURIComponent(toSel.code)}&date=${encodeURIComponent(date)}&key=${encodeURIComponent(state.settings.apiKey)}`);
+      const trains = await res.json();
+      if (!res.ok) throw new Error((trains && trains.error) || 'search failed');
+      if (!trains.length) {
+        $results.innerHTML = `<div class="hint">No trains found between ${escapeHtml(fromSel.name)} and ${escapeHtml(toSel.name)} on that date.</div>`;
+        return;
+      }
+      $results.innerHTML = trains.map((t, i) => trainOptionHtml(t, i)).join('');
+      $results.querySelectorAll('.train-option').forEach((el) => {
+        el.onclick = () => {
+          const t = trains[Number(el.dataset.i)];
+          const watch = createWatchFromSearch(name, t, toSel.name, date);
+          state.view = { name: 'watch', id: watch.id };
+          render();
+        };
+      });
+    } catch (e) {
+      $results.innerHTML = `<div class="hint" style="color:var(--bad)">${escapeHtml(String(e.message || e))}</div>`;
+    }
+  };
+}
+
+function renderAddManual() {
+  const trainNumbers = Object.keys(state.trainHistory);
+  $main.innerHTML = `
+    <button class="back-btn" id="back">← Back</button>
+    <div class="card">
+      <label>Who's traveling?</label>
+      <input id="f_name" placeholder="e.g. Mom">
+
+      <label>Train number</label>
+      <input id="f_number" placeholder="e.g. 12301" list="knownTrains">
+      <datalist id="knownTrains">${trainNumbers.map(n => `<option value="${n}">`).join('')}</datalist>
+      <div class="hint" id="historyHint" hidden></div>
+
+      <label>Train name (optional)</label>
+      <input id="f_trainname" placeholder="e.g. Howrah Rajdhani">
+
+      <label>Arrival station</label>
+      <input id="f_station" placeholder="e.g. New Delhi">
+
+      <label>Scheduled arrival</label>
+      <input id="f_when" type="datetime-local">
+
+      <button class="primary" id="submit">Start watching</button>
+      ${state.settings.apiKey ? `<button class="link" id="toSearch">Search by station instead</button>` : `<div class="hint">Add a RailRadar API key in Settings to search trains by station instead of typing a number.</div>`}
+    </div>`;
+
+  document.getElementById('back').onclick = () => { state.view = { name: 'home' }; render(); };
+  const toSearch = document.getElementById('toSearch');
+  if (toSearch) toSearch.onclick = () => { state.view.mode = 'search'; render(); };
+
+  const $number = document.getElementById('f_number');
+  const $hint = document.getElementById('historyHint');
+  $number.addEventListener('input', () => {
+    const avg = avgHistoryDelay($number.value.trim());
+    const hist = state.trainHistory[$number.value.trim()];
+    if (avg !== null) {
+      $hint.hidden = false;
+      $hint.textContent = `Last ${hist.runs.length} trip(s) averaged ${avg} min late — we'll use that until live data comes in.`;
+      if (hist.name) document.getElementById('f_trainname').value = hist.name;
+    } else {
+      $hint.hidden = true;
+    }
+  });
+
+  const defaultWhen = new Date(Date.now() + 2 * 3600000);
+  defaultWhen.setSeconds(0, 0);
+  document.getElementById('f_when').value = new Date(defaultWhen.getTime() - defaultWhen.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+  document.getElementById('submit').onclick = () => {
+    const name = document.getElementById('f_name').value.trim();
+    const number = document.getElementById('f_number').value.trim();
+    const trainname = document.getElementById('f_trainname').value.trim();
+    const station = document.getElementById('f_station').value.trim();
+    const when = document.getElementById('f_when').value;
+    if (!name || !number || !station || !when) { showToast('Fill in traveler, train number, station, and time'); return; }
+    const watch = addWatch({
+      travelerName: name, trainNumber: number, trainName: trainname,
+      arrivalStation: station, scheduledArrival: new Date(when).toISOString(),
+    });
+    state.view = { name: 'watch', id: watch.id };
+    render();
+  };
+}
+
+function renderWatch(id) {
+  const watch = state.watches.find((w) => w.id === id);
+  if (!watch) { state.view = { name: 'home' }; return render(); }
+  watch._live = watch._live || demoLive(watch);
+  const { live, delayMinutes, predictedArrival, leaveBy } = computePrediction(watch);
+  $headerSub.textContent = watch.travelerName;
+
+  const leaveDiff = leaveBy - Date.now();
+  const leaveNow = leaveDiff <= 0 && watch.status === 'active';
+
+  const reminderDefs = [
+    { key: 'oneHour', label: '1 hour before arrival' },
+    { key: 'fifteenMin', label: '15 minutes before arrival' },
+    { key: 'arrived', label: 'Arrival time reached' },
+  ];
+  const reminders = reminderDefs.map(r => `
+    <div class="reminder-item">
+      <span class="dot ${watch.remindersFired[r.key] ? 'fired' : ''}" id="dot-${r.key}"></span>
+      <span>${r.label}</span>
+      <span class="t" id="status-${r.key}">${watch.remindersFired[r.key] ? 'sent' : 'pending'}</span>
+    </div>`).join('');
+
+  $main.innerHTML = `
+    <button class="back-btn" id="back">← Back</button>
+    <div class="card">
+      <div class="meta" style="color:var(--muted); font-size:13px;">${escapeHtml(watch.trainName || '')} ${escapeHtml(watch.trainNumber)} → ${escapeHtml(watch.arrivalStation)}</div>
+      <div class="big-eta">
+        <div class="time" id="liveTime">${fmtTime(predictedArrival)}</div>
+        <div class="label" id="liveLabel">${watch.status === 'arrived' ? 'Arrived' : `predicted arrival · ${fmtCountdown(predictedArrival)}`}</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="v" id="statStation">${live.stationName || '—'}</div><div class="k">current position</div></div>
+        <div class="stat"><div class="v" id="statDelay">${fmtDelay(delayMinutes)}</div><div class="k">delay (<span id="statSource">${live.source || 'demo'}</span>)</div></div>
+      </div>
+      ${watch.status === 'active' ? `
+      <div class="leave-banner ${leaveNow ? 'now' : 'future'}" id="leaveBanner">
+        <span id="leaveHeadline">${leaveNow ? 'Leave now to make it in time' : `Leave by ${fmtTime(leaveBy)}`}</span>
+        <div class="sub">based on a ${state.settings.driveTimeMinutes}-min drive + ${state.settings.bufferMinutes}-min buffer to ${state.settings.residenceAddress || 'your residence'}</div>
+      </div>
+      <a class="uber-btn" id="uberBtn" target="_blank" rel="noopener">Open Uber → pickup at ${escapeHtml(watch.arrivalStation)}</a>
+      ` : ''}
+      <div class="reminder-list">${reminders}</div>
+      ${watch.status === 'active' ? `<button class="secondary" id="markArrived">Mark as arrived</button>` : ''}
+      <button class="secondary danger" id="deleteWatch">Delete this watch</button>
+    </div>`;
+
+  document.getElementById('back').onclick = () => { state.view = { name: 'home' }; render(); };
+  const uberBtn = document.getElementById('uberBtn');
+  if (uberBtn) uberBtn.href = uberDeepLink(watch);
+  const markBtn = document.getElementById('markArrived');
+  if (markBtn) markBtn.onclick = () => { markArrived(watch); render(); };
+  document.getElementById('deleteWatch').onclick = () => {
+    if (confirm(`Stop watching ${watch.travelerName}'s train?`)) {
+      deleteWatch(watch.id);
+      state.view = { name: 'home' };
+      render();
+    }
+  };
+}
+
+// Called on every tick instead of a full renderWatch() rebuild — keeps the
+// countdown/live numbers current without replacing buttons mid-interaction.
+function updateWatchLive(id) {
+  const watch = state.watches.find((w) => w.id === id);
+  if (!watch || !document.getElementById('liveTime')) return;
+  watch._live = watch._live || demoLive(watch);
+  const { live, delayMinutes, predictedArrival, leaveBy } = computePrediction(watch);
+
+  document.getElementById('liveTime').textContent = fmtTime(predictedArrival);
+  document.getElementById('liveLabel').textContent = watch.status === 'arrived'
+    ? 'Arrived' : `predicted arrival · ${fmtCountdown(predictedArrival)}`;
+  document.getElementById('statStation').textContent = live.stationName || '—';
+  document.getElementById('statDelay').textContent = fmtDelay(delayMinutes);
+  const srcEl = document.getElementById('statSource');
+  if (srcEl) srcEl.textContent = live.source || 'demo';
+
+  const banner = document.getElementById('leaveBanner');
+  if (banner) {
+    const leaveNow = leaveBy - Date.now() <= 0 && watch.status === 'active';
+    banner.className = `leave-banner ${leaveNow ? 'now' : 'future'}`;
+    document.getElementById('leaveHeadline').textContent = leaveNow ? 'Leave now to make it in time' : `Leave by ${fmtTime(leaveBy)}`;
+  }
+
+  for (const key of ['oneHour', 'fifteenMin', 'arrived']) {
+    const dot = document.getElementById(`dot-${key}`);
+    const status = document.getElementById(`status-${key}`);
+    if (!dot || !status) continue;
+    dot.classList.toggle('fired', !!watch.remindersFired[key]);
+    status.textContent = watch.remindersFired[key] ? 'sent' : 'pending';
+  }
+}
+
+function renderSettings() {
+  $headerSub.textContent = 'Settings';
+  const s = state.settings;
+  $main.innerHTML = `
+    <button class="back-btn" id="back">← Back</button>
+    <div class="card">
+      <label>Your residence (used as the Uber dropoff)</label>
+      <input id="s_addr" value="${escapeAttr(s.residenceAddress)}" placeholder="e.g. 12 Park Street, New Delhi">
+
+      <div class="row2">
+        <div>
+          <label>Drive time to station (min)</label>
+          <input id="s_drive" type="number" min="0" value="${s.driveTimeMinutes}">
+        </div>
+        <div>
+          <label>Buffer (min)</label>
+          <input id="s_buffer" type="number" min="0" value="${s.bufferMinutes}">
+        </div>
+      </div>
+
+      <label>Train data source</label>
+      <select id="s_provider">
+        <option value="demo" ${s.provider === 'demo' ? 'selected' : ''}>Demo (simulated running status)</option>
+        <option value="live" ${s.provider === 'live' ? 'selected' : ''}>Live API — RailRadar</option>
+      </select>
+      <div class="hint">Live mode calls railradar.in's live-status endpoint through this app's local server, using your own API key. Falls back to the last known value (or demo data) if a call fails.</div>
+
+      <label>RailRadar API key</label>
+      <input id="s_key" value="${escapeAttr(s.apiKey)}" placeholder="e.g. rg_... or rr_live_...">
+
+      <label>Live poll interval (seconds)</label>
+      <input id="s_poll" type="number" min="60" value="${s.livePollSeconds}">
+      <div class="hint">RailRadar's free sandbox tier allows 1,000 requests/month. At 180s this is one call every 3 minutes per active watch — raise it if you're tracking several trains for hours at a time.</div>
+
+      <label>Demo speed multiplier</label>
+      <input id="s_speed" type="number" min="1" value="${s.demoSpeedMultiplier}">
+      <div class="hint">How much faster demo trains move than real time, so you can actually see reminders fire while testing. Unused in Live mode.</div>
+
+      <button class="primary" id="save">Save settings</button>
+      <button class="link" id="notifTest">Send a test notification</button>
+    </div>`;
+
+  document.getElementById('back').onclick = () => { state.view = { name: 'home' }; render(); };
+  document.getElementById('save').onclick = () => {
+    s.residenceAddress = document.getElementById('s_addr').value.trim();
+    s.driveTimeMinutes = Number(document.getElementById('s_drive').value) || 0;
+    s.bufferMinutes = Number(document.getElementById('s_buffer').value) || 0;
+    s.provider = document.getElementById('s_provider').value;
+    s.apiKey = document.getElementById('s_key').value.trim();
+    s.livePollSeconds = Math.max(60, Number(document.getElementById('s_poll').value) || 180);
+    s.demoSpeedMultiplier = Math.max(1, Number(document.getElementById('s_speed').value) || 1);
+    save();
+    showToast('Settings saved');
+    state.view = { name: 'home' };
+    render();
+  };
+  document.getElementById('notifTest').onclick = async () => {
+    await fireNotification('Test notification', 'This is what a reminder will look like.', '#');
+  };
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function escapeAttr(str) { return escapeHtml(str); }
+
+// ---------- Wiring ----------
+document.getElementById('settingsBtn').onclick = () => { state.view = { name: 'settings' }; render(); };
+$fab.onclick = () => { state.view = { name: 'add' }; render(); };
+
+if (location.hash === '#add') state.view = { name: 'add' };
+
+render();
+setInterval(tick, 5000);
+tick();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
