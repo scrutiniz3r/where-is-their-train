@@ -350,6 +350,50 @@ function demoLive(watch) {
   return { stationName, delayMinutes, distanceRemainingKm, updatedAt: new Date().toISOString(), source: 'demo' };
 }
 
+// ---------- RailRadar (called directly from the browser — https://railradar.in/docs) ----------
+// RailRadar's CORS policy allows browser-origin requests (verified against
+// the live API), so this app is a pure static site: no server-side proxy,
+// which is what lets it run unmodified on GitHub Pages. The API key you
+// enter in Settings is stored only in this browser's localStorage and sent
+// straight to RailRadar — never to any server of ours.
+const RAILRADAR_BASE = 'https://api.railradar.in';
+
+async function railRadarFetch(path, apiKey) {
+  const res = await fetch(RAILRADAR_BASE + path, { headers: { Authorization: `Bearer ${apiKey}` } });
+  const json = await res.json();
+  if (json.success === false) throw new Error((json.error && json.error.message) || 'RailRadar error');
+  return json;
+}
+
+// Normalizes a /v1/trains/{number}/live response to:
+// { stationName, delayMinutes, distanceRemainingKm, updatedAt }
+function normalizeLiveStatus(json) {
+  const d = json.data;
+  if (!d) return null;
+  const cur = d.currentLocation || {};
+  const prev = d.previousHalt || {};
+  const next = d.nextHalt || {};
+
+  let distanceRemainingKm = null;
+  const totalDistance = d.train && typeof d.train.distance === 'number' ? d.train.distance : null;
+  if (totalDistance != null && typeof prev.distance === 'number') {
+    const segSpan = (typeof next.distance === 'number' ? next.distance : prev.distance) - prev.distance;
+    const covered = prev.distance + (cur.segmentProgress || 0) * segSpan;
+    distanceRemainingKm = Math.max(0, Math.round(totalDistance - covered));
+  }
+
+  const stationName = cur.status === 'halted'
+    ? (prev.stationName || cur.stationCode || null)
+    : (next.stationName ? `en route to ${next.stationName}` : (cur.stationCode || null));
+
+  return {
+    stationName,
+    delayMinutes: typeof d.delayMinutes === 'number' ? d.delayMinutes : 0,
+    distanceRemainingKm,
+    updatedAt: d.lastUpdatedAt || new Date().toISOString(),
+  };
+}
+
 // RailRadar's free tier caps at 1,000 requests/month, so we only hit the
 // network every `livePollSeconds` per watch and reuse the cached result the
 // rest of the time — the UI still ticks every 5s off that cached value.
@@ -363,11 +407,11 @@ async function liveFetch(watch) {
   }
 
   try {
-    const res = await fetch(`/api/live-status?number=${encodeURIComponent(watch.trainNumber)}&key=${encodeURIComponent(state.settings.apiKey)}`);
-    const json = await res.json();
-    if (!res.ok || json.error) throw new Error(json.error || 'bad status');
+    const json = await railRadarFetch(`/v1/trains/${encodeURIComponent(watch.trainNumber)}/live`, state.settings.apiKey);
+    const normalized = normalizeLiveStatus(json);
+    if (!normalized) throw new Error('no usable status in response');
     watch._liveFetchedAt = now;
-    return { ...json, source: 'live' };
+    return { ...normalized, source: 'live' };
   } catch (e) {
     watch._liveFetchedAt = now;
     watch._liveError = String(e.message || e);
@@ -609,11 +653,10 @@ async function apiStationSearch(q) {
   if (!key || q.trim().length < 2) return [];
   if (stationCache[q]) return stationCache[q];
   try {
-    const res = await fetch(`/api/station-search?q=${encodeURIComponent(q)}&key=${encodeURIComponent(key)}`);
-    const json = await res.json();
-    if (!res.ok) return [];
-    stationCache[q] = json;
-    return json;
+    const json = await railRadarFetch(`/v1/lookup/search/stations?q=${encodeURIComponent(q)}&limit=10`, key);
+    const results = Array.isArray(json.data) ? json.data : [];
+    stationCache[q] = results;
+    return results;
   } catch {
     return [];
   }
@@ -721,9 +764,19 @@ function renderAddSearch() {
     const $results = document.getElementById('trainResults');
     $results.innerHTML = `<div class="hint">Searching…</div>`;
     try {
-      const res = await fetch(`/api/trains-between?from=${encodeURIComponent(fromSel.code)}&to=${encodeURIComponent(toSel.code)}&date=${encodeURIComponent(date)}&key=${encodeURIComponent(state.settings.apiKey)}`);
-      const trains = await res.json();
-      if (!res.ok) throw new Error((trains && trains.error) || 'search failed');
+      const json = await railRadarFetch(`/v1/trains/between/${encodeURIComponent(fromSel.code)}/${encodeURIComponent(toSel.code)}?live=true&date=${encodeURIComponent(date)}`, state.settings.apiKey);
+      const rawTrains = (json.data && json.data.trains) || [];
+      const trains = rawTrains.map((t) => ({
+        number: t.train.number,
+        name: t.train.name,
+        type: t.train.type || null,
+        departure: t.from && t.from.departure,
+        arrival: t.to && t.to.arrival,
+        fromDay: (t.from && t.from.day) || 1,
+        toDay: (t.to && t.to.day) || 1,
+        delayMinutes: t.live && typeof t.live.delayMinutes === 'number' ? t.live.delayMinutes : null,
+        platform: (t.live && t.live.platform) || null,
+      }));
       if (!trains.length) {
         $results.innerHTML = `<div class="hint">No trains found between ${escapeHtml(fromSel.name)} and ${escapeHtml(toSel.name)} on that date.</div>`;
         return;
@@ -924,7 +977,7 @@ function renderSettings() {
         <option value="demo" ${s.provider === 'demo' ? 'selected' : ''}>Demo (simulated running status)</option>
         <option value="live" ${s.provider === 'live' ? 'selected' : ''}>Live API — RailRadar</option>
       </select>
-      <div class="hint">Live mode calls railradar.in's live-status endpoint through this app's local server, using your own API key. Falls back to the last known value (or demo data) if a call fails.</div>
+      <div class="hint">Live mode calls railradar.in directly from your browser using your own API key — the key is stored only in this browser's local storage and never leaves it except to RailRadar. Falls back to the last known value (or demo data) if a call fails.</div>
 
       <label>RailRadar API key</label>
       <input id="s_key" value="${escapeAttr(s.apiKey)}" placeholder="e.g. rg_... or rr_live_...">
